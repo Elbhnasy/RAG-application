@@ -7,17 +7,18 @@
 	},
 	"item": [
 		{
-			"name": "welcome-request",
+			"name": "Base_request",
 			"request": {
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{api}}/welcome",
+					"raw": "{{api}}/api/v1",
 					"host": [
 						"{{api}}"
 					],
 					"path": [
-						"welcome"
+						"api",
+						"v1"
 					]
 				}
 			},
@@ -49,7 +50,7 @@
 	"variable": [
 		{
 			"key": "api",
-			"value": "http://127.0.0.1:5000",
+			"value": "http://127.0.0.1:8000",
 			"type": "string"
 		}
 	]
