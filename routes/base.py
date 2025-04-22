@@ -9,8 +9,10 @@ base_router = APIRouter(
 async def welcome():
     app_name  = os.getenv('APP_NAME')
     app_version = os.getenv('APP_VERSION')
+    app_description = os.getenv('APP_DESCRIPTION')
 
     return {
         "message": f"Welcome to {app_name} API",
-        "version": app_version
+        "version": app_version,
+        "description": app_description
     }
