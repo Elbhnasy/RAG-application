@@ -31,7 +31,7 @@ async def upload_data(project_id: str, file:UploadFile,
             }
         )
     
-    file_path = data_controller.generate_unique_filepath(
+    file_path, file_id = data_controller.generate_unique_filepath(
         orig_file_name=file.filename,
         project_id=project_id
     )
@@ -51,6 +51,7 @@ async def upload_data(project_id: str, file:UploadFile,
         status_code=status.HTTP_200_OK,
         content={
             "signal": ResponseSignal.FILE_UPLOAD_SUCCESS.value,
-            "file_path": file_path
+            "file_path": file_path,
+            "file_id": file_id
         }
     )
