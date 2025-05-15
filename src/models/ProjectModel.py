@@ -11,3 +11,12 @@ class ProjectModel(BaseDataModel):
         result = await self.collection.insert_one(project.model_dump(by_alias=True, exclude_unset=True))
         project._id = result.inserted_id
         return project
+    
+    async def get_project_or_create_one(self, project_id: str):
+        record = await self.collection.find_one({"Project_id": project_id})
+        if record is None:
+            project = Project(Project_id=project_id)
+            project = await self.create_project(project=project)
+            return project
+        
+        return Project(**record)
