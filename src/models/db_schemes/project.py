@@ -3,7 +3,7 @@ from typing import Optional, List
 from bson.objectid import ObjectId
 
 class Project(BaseModel):
-    _id : Optional[ObjectId]
+    id: Optional[ObjectId] = Field(None, alias="_id")
     Project_id : str = Field(..., min_length=1)
 
     @field_validator('Project_id')
