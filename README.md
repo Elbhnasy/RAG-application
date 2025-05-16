@@ -38,5 +38,14 @@ Set your environment variables in the `.env` file. Like `OPENAI_API_KEY` value.
 ```bash
 $ fastapi dev main.py
 ```
+## docker 
+* This commads just for development mode
+```bash
+$ docker stop $(docker ps -aq)
+$ docker rm $(docker ps -aq)
+$ docker rmi $(docker images -q)
+$ docker volume rm $(docker volume ls -q)
+$ docker system prune -a
+```
 ### POSTMAN Collection
 You can use the provided Postman collection to test the API endpoints. Import the [mini-rag.postman_collection.json](assets/Mini-Rag.postman_collection.json) file into Postman and run the requests.
