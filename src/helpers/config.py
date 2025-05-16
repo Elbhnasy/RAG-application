@@ -1,16 +1,20 @@
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings
+from typing import Optional
 
 class Settings(BaseSettings):
-    APP_NAME : str 
-    APP_VERSION : str 
-    APP_DESCRIPTION : str 
-    OPENAI_API_KEY : str
-    FILE_ALLOWED_TYPES : list
-    FILE_MAX_SIZE : int
-    FILE_DEFULT_CHUNK_SIZE : int
+    APP_NAME: str
+    APP_VERSION: str
+    APP_DESCRIPTION: str
+    OPENAI_API_KEY: Optional[str] = None
+    FILE_ALLOWED_TYPES: str
+    FILE_MAX_SIZE: int
+    FILE_DEFULT_CHUNK_SIZE: int
+    MONGODB_URL: str
+    MONGODB_DATABASE: str
 
     class Config:
         env_file = ".env"
+        env_file_encoding = "utf-8"
 
 def get_settings() -> Settings:
     return Settings()
