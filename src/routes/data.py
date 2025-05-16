@@ -63,7 +63,7 @@ async def upload_data(request: Request, project_id: str, file:UploadFile,
             "signal": ResponseSignal.FILE_UPLOAD_SUCCESS.value,
             "file_path": file_path,
             "file_id": file_id,
-            "project_id": str(project_id)
+            
         }
     )
 
