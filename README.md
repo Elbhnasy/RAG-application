@@ -46,6 +46,8 @@ $ docker rm $(docker ps -aq)
 $ docker rmi $(docker images -q)
 $ docker volume rm $(docker volume ls -q)
 $ docker system prune -a
+
+$ docker compose up -d
 ```
 ### POSTMAN Collection
 You can use the provided Postman collection to test the API endpoints. Import the [mini-rag.postman_collection.json](assets/Mini-Rag.postman_collection.json) file into Postman and run the requests.
