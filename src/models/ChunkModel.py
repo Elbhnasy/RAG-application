@@ -8,4 +8,8 @@ class ChunkModel(BaseDataModel):
     def __init__(self, db_client: object):
         super().__init__(db_client=db_client)
         self.collection = self.db_client[DataBaseEnum.COLLECTION_CHUNK_NAME.value]
-        pass 
+    async def create_chunk(self, chunk : DataChunk) -> str:
+        result = await self.collection.insert_one(chunk.model_dump(by_alias=True, exclude_unset=True))
+        chunk._id = result.inserted_id
+        return chunk
+    
