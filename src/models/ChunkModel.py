@@ -19,4 +19,16 @@ class ChunkModel(BaseDataModel):
             return None
         return DataChunk(**result)
     
-    
+    async def insert_many_chunks(self, chunks: list[DataChunk], batch_size:int = 100) -> int:
+        for i in range(0, len(chunks), batch_size):
+            batch = chunks[i:i+batch_size]
+
+            operations = [
+                InsertOne(chunk.model_dump(by_alias=True, exclude_unset=True))
+                for chunk in batch
+            ]
+
+            await self.collection.bulk_write(operations)
+
+        return len(chunks)
+        
