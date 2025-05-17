@@ -5,7 +5,7 @@ class ProcessRequest(BaseModel):
     """
     Request model for process data.
     """
-    file_id: str
+    file_id: str = None
     chunk_size: Optional[int] = 100
     overlap_size: Optional[int] = 20
     do_reset: Optional[int] = 0
