@@ -8,10 +8,6 @@ class ChunkModel(BaseDataModel):
     def __init__(self, db_client: object):
         super().__init__(db_client=db_client)
         self.collection = self.db_client[DataBaseEnum.COLLECTION_CHUNK_NAME.value]
-    async def create_chunk(self, chunk : DataChunk) -> str:
-        result = await self.collection.insert_one(chunk.model_dump(by_alias=True, exclude_unset=True))
-        chunk._id = result.inserted_id
-        return chunk
     
     @classmethod
     async def create_instance(cls, db_client: object):
@@ -30,6 +26,12 @@ class ChunkModel(BaseDataModel):
                     name=index["name"],
                     unique=index["unique"],
                 )
+
+                
+    async def create_chunk(self, chunk : DataChunk) -> str:
+        result = await self.collection.insert_one(chunk.model_dump(by_alias=True, exclude_unset=True))
+        chunk._id = result.inserted_id
+        return chunk
 
     async def get_chunk(self, chunk_id: str) -> DataChunk:
         result = await self.collection.find_one({"_id": ObjectId(chunk_id)})
