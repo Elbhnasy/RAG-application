@@ -49,3 +49,27 @@ class OpenAIProvider(LLMInterface):
         self.embedding_size = embedding_size
         self.logger.info(f"Embedding model set to {model_id} with size {embedding_size}")
 
+    def process_text(self, text: str):
+        """
+        Process the input text to ensure it meets the requirements of the LLM.
+        
+        :param text: The input text to be processed.
+        :return: The processed text.
+        """
+        return text[:self.default_input_max_characters].strip()
+    
+    def construct_prompt(self, prompt:str, role:str):
+        """
+        Construct a prompt based on the provided input and role.
+        
+        :param prompt: The input prompt.
+        :param role: The role of the user (e.g., 'user', 'assistant').
+        :return: The constructed prompt.
+        """
+        return {
+            "role": role,
+            "content": self.process_text(prompt)
+        }
+        
+
+
