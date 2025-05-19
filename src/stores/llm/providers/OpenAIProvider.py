@@ -111,3 +111,30 @@ class OpenAIProvider(LLMInterface):
             return None
         
         return response.choices[0].message.content
+    
+    def embed_text(self, text: str, document_type: str = None):
+        """
+        Embed the provided text into a vector representation.
+        
+        :param text: The input text to be embedded.
+        :param document_type: The type of document (optional).
+        :return: The embedded vector representation of the text.
+        """
+        if not self.client:
+            self.logger.error("OpenAI client is not initialized.")
+            return None
+        
+        if not self.embedding_model_id:
+            self.logger.error("Embedding model ID is not set.")
+            return None
+        
+        response = self.client.embeddings.create(
+            model=self.embedding_model_id,
+            input=text
+        )
+
+        if not response or not response.data or len(response.data) == 0 or not response.data[0].embedding:
+            self.logger.error("Error while embedding text with OpenAI.")
+            return None
+        
+        return response.data[0].embedding
