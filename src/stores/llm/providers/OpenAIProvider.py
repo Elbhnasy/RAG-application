@@ -73,3 +73,41 @@ class OpenAIProvider(LLMInterface):
         
 
 
+    def generate_text(self, prompt: str, chat_history: list=[],
+                    max_output_tokens: int=None,temperature: float = None):
+        """
+        Generate text based on the provided prompt and chat history.
+        
+        :param prompt: The input prompt for text generation.
+        :param chat_history: The history of the chat (optional).
+        :param max_output_tokens: The maximum number of tokens to generate (optional).
+        :param temperature: The temperature for sampling (optional).
+        :return: The generated text.
+        """
+        if not self.client:
+            self.logger.error("OpenAI client is not initialized.")
+            return None
+        
+        if not self.generation_model_id:
+            self.logger.error("Generation model ID is not set.")
+            return None
+        
+        max_output_tokens = max_output_tokens if max_output_tokens is not None else self.default_generation_max_output_tokens
+        temperature = temperature if temperature is not None else self.default_generation_temperature
+
+        chat_history.append(
+            self.construct_prompt(prompt=prompt, role=OpenAIEnums.USER.value)
+        )
+
+        response = self.client.chat.completions.create(
+            model=self.generation_model_id,
+            messages=chat_history,
+            max_tokens=max_output_tokens,
+            temperature=temperature
+        )
+
+        if not response or not response.choices or len(response.choices) == 0 or not response.choices[0].message:
+            self.logger.error("No response from OpenAI API.")
+            return None
+        
+        return response.choices[0].message.content
