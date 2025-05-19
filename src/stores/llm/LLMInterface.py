@@ -49,4 +49,14 @@ class LLMInterface(ABC):
         :return: The embedded vector representation of the text.
         """
         pass
-    
+
+    @abstractmethod
+    def construct_prompt(self, prompt: str, role: str):
+        """
+        Construct a prompt based on the provided input and role.
+
+        :param prompt: The input prompt.
+        :param role: The role of the user (e.g., 'user', 'assistant').
+        :return: The constructed prompt.
+        """
+        pass
