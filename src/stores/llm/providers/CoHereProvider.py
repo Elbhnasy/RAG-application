@@ -122,4 +122,38 @@ class CoHereProvider(LLMInterface):
         return response.message.content[0].text
     
 
-    
+    def embed_text(self, text: str, document_type: str = None):
+        """
+        Embed the provided text into a vector representation.
+        
+        :param text: The input text to be embedded.
+        :param document_type: The type of document (optional).
+        :return: The embedded vector representation of the text.
+        """
+        if not self.client:
+            self.logger.error("CoHere client was not set")
+            return None
+
+        if not self.embedding_model_id:
+            self.logger.error("Embedding model for CoHere was not set")
+            return None
+
+        input_type = CoHereEnums.DOCUMENT
+        if document_type == CoHereEnums.QUERY:
+            input_type = CoHereEnums.QUERY
+
+
+        response = self.client.embed(
+            model=self.embedding_model_id,
+            texts=[self.process_text(text)],
+            input_type= input_type,
+            embedding_types=['float']
+        )
+
+        if not response or not response.embeddings or not response.embeddings.float:
+            self.logger.error("Error while embedding text with CoHere")
+            return None
+        
+
+        return response.embeddings.float[0]
+        
