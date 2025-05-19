@@ -38,4 +38,14 @@ class OpenAIProvider(LLMInterface):
         self.generation_model_id = model_id
         self.logger.info(f"Generation model set to {model_id}")
     
-    
+    def set_embedding_model(self, model_id: str, embedding_size: int):
+        """
+        Set the embedding model to be used.
+        
+        :param model_id: The ID of the model to be set.
+        :param embedding_size: The size of the embedding.
+        """
+        self.embedding_model_id = model_id
+        self.embedding_size = embedding_size
+        self.logger.info(f"Embedding model set to {model_id} with size {embedding_size}")
+
