@@ -180,4 +180,21 @@ class QdrantDBProvider(VectorDBInterface):
         self.logger.info(f"Inserted {len(texts)} documents into collection {collection_name}")
         return True
     
-    
+    def  search_by_vector(self, collection_name: str, vector: list,
+                        limit: int = 5) -> List[Dict[str, Any]]:
+        """Search for documents in the Qdrant database using a vector.
+
+        Args:
+            collection_name (str): The name of the collection.
+            vector (list): The vector to search for.
+            limit (int): The maximum number of results to return.
+
+        Returns:
+            List[Dict[str, Any]]: A list of dictionaries containing the search results.
+        """
+
+        return self.client.search(
+            collection_name= collection_name,
+            query_vector= vector,
+            limit= limit
+        )
