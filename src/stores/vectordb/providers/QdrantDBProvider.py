@@ -30,4 +30,9 @@ class QdrantDBProvider(VectorDBInterface):
         self.client = QdrantClient(path=self.db_bath)
         self.logger.info(f"Connected to Qdrant database at {self.db_bath}")
         
+    def disconnect(self) -> None:
+        """Disconnect from the Qdrant database."""
+        self.client.close()
+        self.logger.info("Disconnected from Qdrant database")
     
+     
