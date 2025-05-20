@@ -70,7 +70,7 @@ class VectorDBInterface(ABC):
 
     @abstractmethod
     def insert_one(self, collection_name: str, text: str, vector: list,
-                        metadata: Optional[dict] = None, record_id: Optional[str] = None) -> str:
+                        metadata: Optional[dict] = None, record_id: Optional[str] = None) -> bool:
         """Insert a single record into the collection.
 
         Args:
@@ -81,8 +81,8 @@ class VectorDBInterface(ABC):
             record_id (str, optional): The ID of the record.
 
         Returns:
-            str: The ID of the inserted record.
-        """
+            bool: True if the record was inserted successfully, False otherwise.
+        """ 
         pass
 
     @abstractmethod
