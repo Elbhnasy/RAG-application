@@ -25,4 +25,9 @@ class QdrantDBProvider(VectorDBInterface):
 
         self.logger = logging.getLogger(__name__)
 
+    def connect(self) -> None:
+        """Connect to the Qdrant database."""
+        self.client = QdrantClient(path=self.db_bath)
+        self.logger.info(f"Connected to Qdrant database at {self.db_bath}")
+        
     
