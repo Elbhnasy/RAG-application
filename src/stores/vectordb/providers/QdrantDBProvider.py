@@ -64,3 +64,14 @@ class QdrantDBProvider(VectorDBInterface):
             Dict[str, Any]: A dictionary containing collection information.
         """
         return self.client.get_collection(collection_name=collection_name)
+    
+    def delete_collection(self, collection_name: str) :
+        """Delete a collection from the Qdrant database.
+
+        Args:
+            collection_name (str): The name of the collection to delete.
+        """
+        if self.is_collection_existed(collection_name=collection_name):
+            self.logger.info(f"Deleted collection: {collection_name}")
+            return self.client.delete_collection(collection_name=collection_name)
+
