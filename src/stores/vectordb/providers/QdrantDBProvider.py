@@ -53,3 +53,14 @@ class QdrantDBProvider(VectorDBInterface):
             List[str]: A list of collection names.
         """
         return self.client.get_collections()
+    
+    def get_collection_info(self, collection_name: str) -> Dict[str, Any]:
+        """Get information about a specific collection.
+
+        Args:
+            collection_name (str): The name of the collection.
+
+        Returns:
+            Dict[str, Any]: A dictionary containing collection information.
+        """
+        return self.client.get_collection(collection_name=collection_name)
