@@ -35,4 +35,14 @@ class QdrantDBProvider(VectorDBInterface):
         self.client.close()
         self.logger.info("Disconnected from Qdrant database")
     
-     
+    def is_collection_existed(self, collection_name: str) -> bool:
+        """Check if a collection exists in the Qdrant database.
+
+        Args:
+            collection_name (str): The name of the collection to check.
+
+        Returns:
+            bool: True if the collection exists, False otherwise.
+        """
+        return self.client.collection_exists(collection_name=collection_name)
+    
