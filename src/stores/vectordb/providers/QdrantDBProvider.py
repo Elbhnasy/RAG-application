@@ -101,3 +101,36 @@ class QdrantDBProvider(VectorDBInterface):
             return True
         self.logger.warning(f"Collection {collection_name} already exists.")
         return False
+    
+    def insert_one(self, collection_name: str, text: str, vector: list,
+                    metadata: Dict[str, Any] = None) -> bool:
+        """Insert a single document into the Qdrant database.
+
+        Args:
+            collection_name (str): The name of the collection.
+            text (str): The text to insert.
+            vector (list): The vector representation of the text.
+            metadata (Dict[str, Any], optional): Additional metadata for the document.
+
+        Returns:
+            bool: True if the insertion was successful, False otherwise.
+        """
+        if not self.is_collection_existed(collection_name=collection_name):
+            self.logger.error(f"Collection {collection_name} does not exist.")
+            return False
+        
+        try:
+            _= self.client.upload_records(
+                collection_name = collection_name,
+                records= [models.Record(
+                    vector= vector,
+                    payload= {"text":text, "metadata": metadata},
+                )]
+            )
+
+        except Exception as e:
+            self.logger.error(f"Error inserting document: {e}")
+            return False
+        
+        self.logger.info(f"Inserted document into collection {collection_name}")
+        return True
