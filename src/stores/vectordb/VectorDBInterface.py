@@ -47,7 +47,7 @@ class VectorDBInterface(ABC):
         pass
 
     @abstractmethod
-    def delete_collection(self, collection_name: str) -> None:
+    def delete_collection(self, collection_name: str) :
         """Delete a collection from the vector database.
 
         Args:
@@ -58,13 +58,15 @@ class VectorDBInterface(ABC):
     @abstractmethod
     def create_collection(self, collection_name: str, 
                                 embedding_size: int,
-                                do_reset: bool = False) -> None:
+                                do_reset: bool = False) -> bool:
         """Create a new collection in the vector database.
 
         Args:
             collection_name (str): The name of the collection to create.
             embedding_size (int): The size of the embeddings.
             do_reset (bool): Whether to reset the collection if it already exists.
+        Returns:
+            bool: True if the collection was created successfully, False otherwise.
         """
         pass
 

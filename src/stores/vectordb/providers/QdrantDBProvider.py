@@ -75,3 +75,29 @@ class QdrantDBProvider(VectorDBInterface):
             self.logger.info(f"Deleted collection: {collection_name}")
             return self.client.delete_collection(collection_name=collection_name)
 
+    def create_collection(self, collection_name: str,embedding_size: int, do_reset: bool = False) -> bool:
+        """Create a new collection in the Qdrant database.
+
+        Args:
+            collection_name (str): The name of the collection to create.
+            embedding_size (int): The size of the embeddings.
+            do_reset (bool): Whether to reset the collection if it already exists.
+
+        Returns:
+            bool: True if the collection was created successfully, False otherwise.
+        """
+        if do_reset:
+            _=self.delete_collection(collection_name=collection_name)
+        
+        if not self.is_collection_existed(collection_name=collection_name):
+            _= self.client.create_collection(
+                collection_name= collection_name,
+                vectors_config= models.VectorParams(
+                    size= embedding_size,
+                    distance= self.distance_method
+                )
+            )
+            self.logger.info(f"Created collection: {collection_name}")
+            return True
+        self.logger.warning(f"Collection {collection_name} already exists.")
+        return False
