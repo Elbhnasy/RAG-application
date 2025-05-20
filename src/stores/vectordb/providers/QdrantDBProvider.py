@@ -46,3 +46,10 @@ class QdrantDBProvider(VectorDBInterface):
         """
         return self.client.collection_exists(collection_name=collection_name)
     
+    def list_all_collections(self) -> List[str]:
+        """List all collections in the Qdrant database.
+
+        Returns:
+            List[str]: A list of collection names.
+        """
+        return self.client.get_collections()
