@@ -20,19 +20,15 @@ async def lifespan(app: FastAPI):
         llm_provider_factory = LLMProviderFactory(settings)
         vector_db_provider_factory = VectorDBProviderFactory(settings)
 
-        # generation client
         app.generation_client = llm_provider_factory.create(provider=settings.GENERATION_BACKEND)
-        app.generation_client.set_generation_model(model_id = settings.GENERATION_MODEL_ID)
+        app.generation_client.set_generation_model(model_id=settings.GENERATION_MODEL_ID)
 
-        # embedding client
         app.embedding_client = llm_provider_factory.create(provider=settings.EMBEDDING_BACKEND)
         app.embedding_client.set_embedding_model(model_id=settings.EMBEDDING_MODEL_ID,
                                                 embedding_size=settings.EMBEDDING_MODEL_SIZE)
         
-        # vector db client
-        app.vectordb_client = vector_db_provider_factory.create(provider=settings.VECTOR_DB_BACKEND)
+        app.vectordb_client = vector_db_provider_factory.create(providr=settings.VECTOR_DB_BACKEND)
         app.vectordb_client.connect()
-
 
         await app.mongo_conn.admin.command("ping")
         logger.info("Connected to MongoDB (DB: %s)", settings.MONGODB_DATABASE)
@@ -42,7 +38,8 @@ async def lifespan(app: FastAPI):
         raise
     finally:
         app.mongo_conn.close()
-        app.vectordb_client.disconnect()
+        if hasattr(app, 'vectordb_client') and app.vectordb_client is not None:
+            app.vectordb_client.disconnect()
         logger.info("MongoDB connection closed")
 
 app = FastAPI(lifespan=lifespan)
