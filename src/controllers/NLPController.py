@@ -47,3 +47,29 @@ class NLPController(BaseController):
         """
 
         collection_name = self.create_collection_name(project_id=project.id)
+
+        texts =[chunk.chunk_text for chunk in chunks]
+        metadata = [chunk.chunk_metadata for chunk in chunks]
+        vectors = [
+            self.embedding_client.embed_text(text=text,
+                                            document_type=DocumentTypeEnum.DOCUMENT.value)
+            for text in texts
+        ]
+
+        _= self.vectordb_client.create_collection(
+            collection_name=collection_name,
+            embedding_size=self.embedding_client.embedding_size,
+            do_reset=do_reset
+        )
+
+        _= self.vectordb_client.insert_many(
+            collection_name=collection_name,
+            texts=texts,
+            vectors=vectors,
+            metadata=metadata,
+            vectors=vectors,
+            record_ids=chunks_ids
+        )
+        return True
+    
+    
