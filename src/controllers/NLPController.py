@@ -93,7 +93,13 @@ class NLPController(BaseController):
         if not results :
             return False
 
-        return results
+        ##return results
+        return json.loads(
+            json.dumps(
+                results,
+                default=lambda o: o.__dict__,
+            )
+        )
     
     def answer_rag_question(self, project: Project, query: str, limit: int = 10):
         """
