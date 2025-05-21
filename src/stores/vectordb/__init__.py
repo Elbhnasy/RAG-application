@@ -1,1 +1,2 @@
-from vectordb import VectorDBProviderFactory
+from .VectorDBProviderFactory import VectorDBProviderFactory
+from .VectorDBEnums import VectorDBEnums
