@@ -1,4 +1,4 @@
-from BaseController import BaseController
+from .BaseController import BaseController
 from models.db_schemes import Project, DataChunk
 from stores.llm.LLMEnums import DocumentTypeEnum
 from typing import List
@@ -67,7 +67,6 @@ class NLPController(BaseController):
             texts=texts,
             vectors=vectors,
             metadata=metadata,
-            vectors=vectors,
             record_ids=chunks_ids
         )
         return True
