@@ -95,3 +95,45 @@ class NLPController(BaseController):
             return False
 
         return results
+    
+    def answer_rag_question(self, project: Project, query: str, limit: int = 10):
+        """
+        Answer a question using the RAG model.
+        """
+        answer, full_prompt, chat_history = None, None, None
+
+        retrieved_documents = self.search_vector_db_collection(
+            project=project,
+            text=query,
+            limit=limit
+        )
+
+        if not retrieved_documents or len(retrieved_documents) == 0:
+            return answer, full_prompt, chat_history
+        
+        system_prompts = self.template_parser.get("rag", "system_prompt")
+        
+        documents_prompt= "\n".join([
+            self.template_parser.get("rag", "document_prompt", {
+                    "doc_num": idx + 1,
+                    "chunk_text": doc.text,
+            })
+            for idx, doc in enumerate(retrieved_documents)
+        ])
+
+        footer_prompt = self.template_parser.get("rag", "footer_prompt")
+
+        chat_history = [
+            self.generation_client.construct_prompt(
+                prompt=system_prompt,
+                role=self.generation_client.enums.SYSTEM.value,
+            )
+        ]
+
+        full_prompt = "\n\n".join([documents_prompt, footer_prompt])
+
+        answer = self.generation_client.generate_text(
+            prompt=full_prompt,
+            chat_history=chat_history
+        )
+        return answer, full_prompt, chat_history
