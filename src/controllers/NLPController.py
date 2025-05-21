@@ -72,4 +72,26 @@ class NLPController(BaseController):
         )
         return True
     
-    
+    def search_vector_db_collection(self, project: Project, text: str,limit: int = 10):
+        """
+        Search the vector db collection for the project.
+        """
+        collection_name = self.create_collection_name(project_id=project.id)
+        
+        vector = self.embedding_client.embed_text(
+            text=text,
+            document_type=DocumentTypeEnum.QUERY.value
+        )
+
+        if not vector or len(vector) == 0:
+            return False
+        
+        results = self.vectordb_client.search_by_vector(
+            collection_name=collection_name,
+            vector=vector,
+            limit=limit
+        )
+        if not results :
+            return False
+
+        return results
