@@ -6,6 +6,9 @@ from helpers import get_settings
 import logging
 from stores.llm.LLMProviderFactory import LLMProviderFactory
 from stores.vectordb.VectorDBProviderFactory import VectorDBProviderFactory
+from stores.llm.templates.template_parser import TemplateParser
+
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -29,6 +32,11 @@ async def lifespan(app: FastAPI):
         
         app.vectordb_client = vector_db_provider_factory.create(providr=settings.VECTOR_DB_BACKEND)
         app.vectordb_client.connect()
+
+        app.template_parser = TemplateParser(
+            language=settings.PRIMARY_LANG,
+            default_language=settings.DEFAULT_LANG
+        )
 
         await app.mongo_conn.admin.command("ping")
         logger.info("Connected to MongoDB (DB: %s)", settings.MONGODB_DATABASE)
