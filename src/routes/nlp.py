@@ -178,6 +178,8 @@ async def search_index(request: Request,project_id: str,search_request: SearchRe
         status_code=status.HTTP_200_OK,
         content={
             "signal": ResponseSignal.VECTORDB_SEARCH_SUCCESS.value,
-            "search_result": search_result
+            "search_result": [
+                result.dict() for result in search_result
+                ]
         }
     )

@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from models.db_schemes.data_chunk import RetrievedDocument
 from typing import List, Dict, Any, Optional
 
 class VectorDBInterface(ABC):
@@ -106,7 +107,7 @@ class VectorDBInterface(ABC):
 
     @abstractmethod
     def search_by_vector(self, collection_name: str, vector: list,
-                        limit: int = 10) -> List[Dict[str, Any]]:
+                        limit: int = 10) -> List[RetrievedDocument]:
         """Search for records in the collection based on a vector.
 
         Args:
