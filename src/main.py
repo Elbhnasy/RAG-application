@@ -44,7 +44,6 @@ async def lifespan(app: FastAPI):
         try:
             app.generation_client = llm_provider_factory.create(provider=settings.GENERATION_BACKEND)
             app.generation_client.set_generation_model(model_id=settings.GENERATION_MODEL_ID)
-            logger.info("Generation client initialized: %s", settings.GENERATION_BACKEND)
         except Exception as e:
             logger.error("Failed to initialize generation client: %s", e)
             raise
@@ -55,7 +54,6 @@ async def lifespan(app: FastAPI):
                 model_id=settings.EMBEDDING_MODEL_ID,
                 embedding_size=settings.EMBEDDING_MODEL_SIZE
             )
-            logger.info("Embedding client initialized: %s", settings.EMBEDDING_BACKEND)
         except Exception as e:
             logger.error("Failed to initialize embedding client: %s", e)
             raise
@@ -63,7 +61,6 @@ async def lifespan(app: FastAPI):
         try:
             app.vectordb_client = vector_db_provider_factory.create(providr=settings.VECTOR_DB_BACKEND)
             app.vectordb_client.connect()
-            logger.info("Vector DB client initialized: %s", settings.VECTOR_DB_BACKEND)
         except Exception as e:
             logger.error("Failed to initialize vector DB client: %s", e)
             raise
@@ -72,9 +69,7 @@ async def lifespan(app: FastAPI):
             language=settings.PRIMARY_LANG,
             default_language=settings.DEFAULT_LANG
         )
-        logger.info("Template parser initialized")
 
-        logger.info("All services initialized successfully")
         yield
         
     except Exception as e:
@@ -86,12 +81,10 @@ async def lifespan(app: FastAPI):
         
         if hasattr(app, 'mongo_conn') and app.mongo_conn:
             app.mongo_conn.close()
-            logger.info("MongoDB connection closed")
             
         if hasattr(app, 'vectordb_client') and app.vectordb_client:
             try:
                 app.vectordb_client.disconnect()
-                logger.info("Vector DB connection closed")
             except Exception as e:
                 logger.error("Error closing vector DB connection: %s", e)
 
