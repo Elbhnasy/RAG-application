@@ -2,7 +2,6 @@ import os
 import importlib
 import logging
 from typing import Dict, Optional, Any
-from functools import lru_cache
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +20,6 @@ class TemplateParser:
             language = self.default_language
 
         language_path = os.path.join(self.current_path, "locales", language)
-        # Fix logic: use language if path exists, otherwise use default
         if os.path.exists(language_path):
             self.language = language
             logger.info(f"Language set to: {language}")
@@ -29,18 +27,7 @@ class TemplateParser:
             self.language = self.default_language
             logger.warning(f"Language '{language}' not found, using default: {self.default_language}")
         
-        # Clear cache when language changes
         self._module_cache.clear()
-
-    @lru_cache(maxsize=128)
-    def _get_available_languages(self) -> list:
-        """Get list of available languages"""
-        locales_path = os.path.join(self.current_path, "locales")
-        if not os.path.exists(locales_path):
-            return [self.default_language]
-        
-        return [d for d in os.listdir(locales_path) 
-                if os.path.isdir(os.path.join(locales_path, d))]
 
     def _load_module(self, group: str, target_language: str) -> Optional[Any]:
         """Load and cache template module"""
@@ -67,57 +54,19 @@ class TemplateParser:
         if vars is None:
             vars = {}
         
-        # Try current language first
-        group_path = os.path.join(self.current_path, "locales", self.language, f"{group}.py")
-        target_language = self.language
-
-        if not os.path.exists(group_path):
-            # Fallback to default language
-            group_path = os.path.join(self.current_path, "locales", self.default_language, f"{group}.py")
-            target_language = self.default_language
-            logger.warning(f"Template group '{group}' not found for language '{self.language}', using default")
+        # Try current language first, then fallback to default
+        for target_language in [self.language, self.default_language]:
+            module = self._load_module(group, target_language)
+            if module and hasattr(module, key):
+                try:
+                    template_attr = getattr(module, key)
+                    return template_attr.substitute(vars)
+                except KeyError as e:
+                    logger.error(f"Missing variable {e} for template '{group}.{key}'")
+                    return None
+                except Exception as e:
+                    logger.error(f"Error substituting template '{group}.{key}': {e}")
+                    return None
         
-        if not os.path.exists(group_path):
-            logger.error(f"Template group '{group}' not found in any language")
-            return None
-        
-        # Load the module
-        module = self._load_module(group, target_language)
-        if not module:
-            return None
-        
-        # Get the template attribute
-        try:
-            template_attr = getattr(module, key, None)
-            if template_attr is None:
-                logger.error(f"Template key '{key}' not found in group '{group}' for language '{target_language}'")
-                return None
-            
-            # Substitute variables
-            return template_attr.substitute(vars)
-            
-        except AttributeError:
-            logger.error(f"Template key '{key}' not found in group '{group}' for language '{target_language}'")
-            return None
-        except KeyError as e:
-            logger.error(f"Missing variable {e} for template '{group}.{key}'")
-            return None
-        except Exception as e:
-            logger.error(f"Error substituting template '{group}.{key}': {e}")
-            return None
-
-    def get_available_languages(self) -> list:
-        """Get list of available languages"""
-        return self._get_available_languages()
-
-    def template_exists(self, group: str, key: str, language: str = None) -> bool:
-        """Check if a template exists"""
-        if language is None:
-            language = self.language
-            
-        group_path = os.path.join(self.current_path, "locales", language, f"{group}.py")
-        if not os.path.exists(group_path):
-            return False
-            
-        module = self._load_module(group, language)
-        return module is not None and hasattr(module, key)
+        logger.error(f"Template '{group}.{key}' not found in any language")
+        return None
