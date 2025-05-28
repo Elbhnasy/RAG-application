@@ -52,7 +52,7 @@ async def lifespan(app: FastAPI):
         logger.info("Embedding client initialized: %s", settings.EMBEDDING_BACKEND)
         
         # Initialize vector DB client
-        app.vectordb_client = vector_db_provider_factory.create(provider=settings.VECTOR_DB_BACKEND)
+        app.vectordb_client = vector_db_provider_factory.create(providr=settings.VECTOR_DB_BACKEND)
         app.vectordb_client.connect()
         logger.info("Vector DB client initialized: %s", settings.VECTOR_DB_BACKEND)
 
