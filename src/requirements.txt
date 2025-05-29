@@ -9,6 +9,8 @@ aiofiles == 24.1.0
 langchain == 0.3.24
 PyMuPDF == 1.25.5
 motor == 3.7.0
-openai == 1.79.0
+openai == 1.82.0
 cohere == 5.15.0
 qdrant-client ==1.14.2
+SQLAlchemy == 2.0.41
+asyncpg == 0.30.0
