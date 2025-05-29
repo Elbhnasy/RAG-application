@@ -1,4 +1,10 @@
 ## Run Alembic Migrations
+```bash
+alembic init alembic
+```
+This command initializes the Alembic environment, creating a directory named `alembic` with the necessary files for managing migrations.
+
+
 
 ### Configuration
 
