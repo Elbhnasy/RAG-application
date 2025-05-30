@@ -3,6 +3,7 @@ from models.db_schemes import Project, DataChunk
 from stores.llm.LLMEnums import DocumentTypeEnum
 from typing import List, Optional, Tuple
 import logging
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -20,19 +21,26 @@ class NLPController(BaseController):
     
     def reset_vector_db_collection(self, project: Project) -> bool:
         """Reset the vector db collection for the project."""
-        collection_name = self.create_collection_name(project_id=project.id)
+        collection_name = self.create_collection_name(project_id=project.project_id)
         return self.vectordb_client.delete_collection(collection_name=collection_name)
     
     def get_vector_db_collection_info(self, project: Project) -> dict:
         """Get the vector db collection info for the project."""
-        collection_name = self.create_collection_name(project_id=project.id)
-        return self.vectordb_client.get_collection_info(collection_name=collection_name)
+        collection_name = self.create_collection_name(project_id=project.project_id)
+        collection_info = self.vectordb_client.get_collection_info(collection_name=collection_name)
+        return json.loads(
+            json.dumps(
+                collection_info, 
+                default=lambda o: o.__dict__ if hasattr(o, '__dict__') else str(o)
+            )
+        )
+     
     
     def index_into_vector_db(self, project: Project, chunks: List[DataChunk],
                            chunks_ids: List[int], do_reset: bool = False) -> bool:
         """Index the chunks into the vector db."""
         try:
-            collection_name = self.create_collection_name(project_id=project.id)
+            collection_name = self.create_collection_name(project_id=project.project_id)
 
             texts = [chunk.chunk_text for chunk in chunks]
             metadata = [chunk.chunk_metadata for chunk in chunks]
@@ -62,7 +70,7 @@ class NLPController(BaseController):
     def search_vector_db_collection(self, project: Project, text: str, limit: int = 10) -> Optional[List]:
         """Search the vector db collection for the project."""
         try:
-            collection_name = self.create_collection_name(project_id=project.id)
+            collection_name = self.create_collection_name(project_id=project.project_id)
             
             vector = self.embedding_client.embed_text(
                 text=text,
@@ -99,7 +107,7 @@ class NLPController(BaseController):
             documents_prompt = "\n".join([
                 self.template_parser.get("rag", "document_prompt", {
                     "doc_num": idx + 1,
-                    "chunk_text": doc.text,
+                    "chunk_text": self.generation_client.process_text(doc.text),
                 })
                 for idx, doc in enumerate(retrieved_documents)
             ])

@@ -11,7 +11,7 @@ class ProjectController(BaseController):
         """
         Get the path of the project with the given ID.
         """
-        project_dir = os.path.join(self.files_dir, project_id)
+        project_dir = os.path.join(self.files_dir, str(project_id))
         if not os.path.exists(project_dir):
             os.makedirs(project_dir)
 
