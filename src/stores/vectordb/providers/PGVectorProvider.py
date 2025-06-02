@@ -181,4 +181,33 @@ class PGVectorProvider(VectorDBInterface):
         return await self.create_vector_index(collection_name=collection_name, index_type=index_type)
 
 
+    async def insert_one(self, collection_name: str, text: str, vector: list,
+                            metadata: dict = None,
+                            record_id: str = None):
+        is_collection_existed = await self.is_collection_existed(collection_name=collection_name)
+        if not is_collection_existed:
+            self.logger.error(f"Can not insert new record to non-existed collection: {collection_name}")
+            return False
+        
+        if not record_id:
+            self.logger.error(f"Can not insert new record without chunk_id: {collection_name}")
+            return False
+        
+        async with self.db_client() as session:
+            async with session.begin():
+                insert_sql = sql_text(f'INSERT INTO {collection_name} '
+                                        f'({PgVectorTableSchemeEnums.TEXT.value}, {PgVectorTableSchemeEnums.VECTOR.value}, {PgVectorTableSchemeEnums.METADATA.value}, {PgVectorTableSchemeEnums.CHUNK_ID.value}) '
+                                        'VALUES (:text, :vector, :metadata, :chunk_id)'
+                                        )
+                metadata_json = json.dumps(metadata, ensure_ascii=False) if metadata is not None else "{}"
+                await session.execute(insert_sql, {
+                    'text': text,
+                    'vector': "[" + ",".join([ str(v) for v in vector ]) + "]",
+                    'metadata': metadata_json,
+                    'chunk_id': record_id
+                })
+                await session.commit()
 
+                await self.create_vector_index(collection_name=collection_name)
+        
+        return True
