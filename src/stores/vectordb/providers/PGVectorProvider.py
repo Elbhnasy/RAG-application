@@ -141,4 +141,33 @@ class PGVectorProvider(VectorDBInterface):
                 
                 return bool(results.scalar_one_or_none())
             
-    
+    async def create_vector_index(self, collection_name: str,
+                                        index_type: str = PgVectorIndexTypeEnums.HNSW.value):
+        
+        is_index_existed = await self.is_index_existed(collection_name=collection_name)
+        if is_index_existed:
+            self.logger.info(f'Index for collection {collection_name} already exists.')
+            return False
+        
+        async with self.db_client() as session:
+            async with session.begin():
+                count_sql = sql_text(f'SELECT COUNT(*) FROM {collection_name}')
+                result = await session.execute(count_sql)
+                records_count = result.scalar_one()
+
+                if records_count < self.index_threshold:
+                    return False
+                
+                self.logger.info(f"START: Creating vector index for collection: {collection_name}")
+
+                index_name = self.default_index_name(collection_name)
+                create_index_sql = sql_text( 
+                                            f'CREATE INDEX {index_name} ON {collection_name} '
+                                            f'USING {index_type} ({PgVectorTableSchemeEnums.VECTOR.value} {self.distance_method})'
+                                            )
+                await session.execute(create_index_sql)
+                await session.commit()
+                self.logger.info(f"END: Creating vector index for collection: {collection_name}")
+
+
+               
