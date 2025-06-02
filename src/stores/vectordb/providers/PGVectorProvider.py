@@ -49,3 +49,42 @@ class PGVectorProvider(VectorDBInterface):
                 results = await session.execute(list_tbl, {'collection_name':collection_name})
                 record = results.scalar_one_or_none()
         return record 
+    
+    async def list_all_collections(self)->List:
+        records = []
+        async with self.db_client() as session:
+            async with session.begin():
+                list_tbl =  sql_text('SELECT tablename FROM pg_tables WHERE tablename LIKE :prefix')
+                results = await session.execute(list_tbl, {'prefix': self.pgvector_table_prefix})
+                records = results.scalars().all()
+
+        return records
+    
+    async def get_collection_info(self, collection_name:str)->dict:
+        async with self.db_client() as session:
+            async with session.begin():
+                table_info_sql = sql_text(f'''
+                    SELECT schemaname, tablename, tableowner, tablespace, hasindexes 
+                    FROM pg_tables 
+                    WHERE tablename = :collection_name
+                ''')
+                count_sql = sql_text(f'SELECT COUNT(*) FROM {collection_name}')
+                
+                table_info = await session.execute(table_info_sql, {'collection_name': collection_name})
+                record_count = await session.execute(count_sql)
+
+                table_data = table_info.fetchone()
+
+                if not table_data:
+                    return None
+                
+                return {
+                    "table_info": {
+                        "schemaname": table_data[0],
+                        "tablename": table_data[1],
+                        "tableowner": table_data[2],
+                        "tablespace": table_data[3],
+                        "hasindexes": table_data[4],
+                    },
+                    "record_count": record_count.scalar_one(),
+                }
