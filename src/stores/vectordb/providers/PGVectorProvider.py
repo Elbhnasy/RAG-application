@@ -211,3 +211,80 @@ class PGVectorProvider(VectorDBInterface):
                 await self.create_vector_index(collection_name=collection_name)
         
         return True
+    
+    async def insert_many(self, collection_name: str, texts: list,
+                            vectors: list, metadata: list = None,
+                            record_ids: list = None, batch_size: int = 50):
+        
+        is_collection_existed = await self.is_collection_existed(collection_name=collection_name)
+        if not is_collection_existed:
+            self.logger.error(f"Can not insert new records to non-existed collection: {collection_name}")
+            return False
+        
+        if len(vectors) != len(record_ids):
+            self.logger.error(f"Invalid data items for collection: {collection_name}")
+            return False
+        
+        if not metadata or len(metadata) == 0:
+            metadata = [None] * len(texts)
+        
+        async with self.db_client() as session:
+            async with session.begin():
+                for i in range(0, len(texts), batch_size):
+                    batch_texts = texts[i:i+batch_size]
+                    batch_vectors = vectors[i:i + batch_size]
+                    batch_metadata = metadata[i:i + batch_size]
+                    batch_record_ids = record_ids[i:i + batch_size]
+
+                    values = []
+
+                    for _text, _vector, _metadata, _record_id in zip(batch_texts, batch_vectors, batch_metadata, batch_record_ids):
+                        
+                        metadata_json = json.dumps(_metadata, ensure_ascii=False) if _metadata is not None else "{}"
+                        values.append({
+                            'text': _text,
+                            'vector': "[" + ",".join([ str(v) for v in _vector ]) + "]",
+                            'metadata': metadata_json,
+                            'chunk_id': _record_id
+                        })
+                    
+                    batch_insert_sql = sql_text(f'INSERT INTO {collection_name} '
+                                    f'({PgVectorTableSchemeEnums.TEXT.value}, '
+                                    f'{PgVectorTableSchemeEnums.VECTOR.value}, '
+                                    f'{PgVectorTableSchemeEnums.METADATA.value}, '
+                                    f'{PgVectorTableSchemeEnums.CHUNK_ID.value}) '
+                                    f'VALUES (:text, :vector, :metadata, :chunk_id)')
+                    
+                    await session.execute(batch_insert_sql, values)
+
+        await self.create_vector_index(collection_name=collection_name)
+
+        return True
+    
+    async def search_by_vector(self, collection_name: str, vector: list, limit: int):
+
+        is_collection_existed = await self.is_collection_existed(collection_name=collection_name)
+        if not is_collection_existed:
+            self.logger.error(f"Can not search for records in a non-existed collection: {collection_name}")
+            return False
+        
+        vector = "[" + ",".join([ str(v) for v in vector ]) + "]"
+        async with self.db_client() as session:
+            async with session.begin():
+                search_sql = sql_text(f'SELECT {PgVectorTableSchemeEnums.TEXT.value} as text, 1 - ({PgVectorTableSchemeEnums.VECTOR.value} <=> :vector) as score'
+                                        f' FROM {collection_name}'
+                                        ' ORDER BY score DESC '
+                                        f'LIMIT {limit}'
+                                        )
+                
+                result = await session.execute(search_sql, {"vector": vector})
+
+                records = result.fetchall()
+
+                return [
+                    RetrievedDocument(
+                        text=record.text,
+                        score=record.score
+                    )
+                    for record in records
+                ]
