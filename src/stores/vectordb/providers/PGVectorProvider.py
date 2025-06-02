@@ -88,3 +88,41 @@ class PGVectorProvider(VectorDBInterface):
                     },
                     "record_count": record_count.scalar_one(),
                 }
+            
+    async def delete_collection(self, collection_name:str)->bool:
+        async with self.db_client() as session:
+            async with session.begin():
+                self.logger.info(f'Deleting collection: {collection_name}')
+
+                drop_table_sql = sql_text(f'DROP TABLE IF EXISTS {collection_name}')
+                await session.execute(drop_table_sql)
+                await session.commit()
+        return True
+    
+    async def create_collection(self, collection_name: str,
+                                    embedding_size: int,
+                                    do_reset: bool = False):
+        if do_reset:
+            _ = await self.delete_collection(collection_name=collection_name)
+
+        is_collection_existed = await self.is_collection_existed(collection_name=collection_name)
+        if not is_collection_existed:
+            self.logger.info(f'Creating collection: {collection_name}')
+            async with self.db_client() as session:
+                async with session.begin():
+                    create_table_sql = sql_text(
+                        f'CREATE TABLE {collection_name} ('
+                            f'{PgVectorTableSchemeEnums.ID.value} bigserial PRIMARY KEY,'
+                            f'{PgVectorTableSchemeEnums.TEXT.value} text, '
+                            f'{PgVectorTableSchemeEnums.VECTOR.value} vector({embedding_size}), '
+                            f'{PgVectorTableSchemeEnums.METADATA.value} jsonb DEFAULT \'{{}}\', '
+                            f'{PgVectorTableSchemeEnums.CHUNK_ID.value} integer, '
+                            f'FOREIGN KEY ({PgVectorTableSchemeEnums.CHUNK_ID.value}) REFERENCES chunks(chunk_id)'
+                        ')'
+                    )
+                    await session.execute(create_table_sql)
+                    await session.commit()
+            return True
+        else:
+            self.logger.info(f'Collection {collection_name} already exists.')
+            return False
