@@ -126,3 +126,19 @@ class PGVectorProvider(VectorDBInterface):
         else:
             self.logger.info(f'Collection {collection_name} already exists.')
             return False
+        
+    async def is_index_existed(self, collection_name:str)->bool:
+        index_name = self.default_index_name(collection_name)
+        async with self.db_client( )as session:
+            async with session.begin():
+                index_check_sql = sql_text(f""" 
+                                    SELECT 1 
+                                    FROM pg_indexes 
+                                    WHERE tablename = :collection_name
+                                    AND indexname = :index_name
+                                    """)
+                results = await session.execute(check_sql, {"index_name": index_name, "collection_name": collection_name})
+                
+                return bool(results.scalar_one_or_none())
+            
+    
