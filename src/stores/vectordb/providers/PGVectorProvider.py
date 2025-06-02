@@ -48,7 +48,7 @@ class PGVectorProvider(VectorDBInterface):
                 list_tbl = sql_text(f'SELECT * FROM pg_tables WHERE tablename = :collection_name')
                 results = await session.execute(list_tbl, {'collection_name':collection_name})
                 record = results.scalar_one_or_none()
-        return record 
+        return record is not None
     
     async def list_all_collections(self)->List:
         records = []
@@ -137,7 +137,7 @@ class PGVectorProvider(VectorDBInterface):
                                     WHERE tablename = :collection_name
                                     AND indexname = :index_name
                                     """)
-                results = await session.execute(check_sql, {"index_name": index_name, "collection_name": collection_name})
+                results = await session.execute(index_check_sql, {"index_name": index_name, "collection_name": collection_name})
                 
                 return bool(results.scalar_one_or_none())
             
@@ -261,23 +261,24 @@ class PGVectorProvider(VectorDBInterface):
 
         return True
     
+            
     async def search_by_vector(self, collection_name: str, vector: list, limit: int):
 
         is_collection_existed = await self.is_collection_existed(collection_name=collection_name)
         if not is_collection_existed:
             self.logger.error(f"Can not search for records in a non-existed collection: {collection_name}")
-            return False
+            return []
         
-        vector = "[" + ",".join([ str(v) for v in vector ]) + "]"
+        vector_str = "[" + ",".join([str(v) for v in vector]) + "]"
         async with self.db_client() as session:
             async with session.begin():
                 search_sql = sql_text(f'SELECT {PgVectorTableSchemeEnums.TEXT.value} as text, 1 - ({PgVectorTableSchemeEnums.VECTOR.value} <=> :vector) as score'
                                         f' FROM {collection_name}'
                                         ' ORDER BY score DESC '
-                                        f'LIMIT {limit}'
+                                        f'LIMIT :limit'
                                         )
                 
-                result = await session.execute(search_sql, {"vector": vector})
+                result = await session.execute(search_sql, {"vector": vector_str, "limit": limit})
 
                 records = result.fetchall()
 
