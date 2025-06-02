@@ -169,5 +169,16 @@ class PGVectorProvider(VectorDBInterface):
                 await session.commit()
                 self.logger.info(f"END: Creating vector index for collection: {collection_name}")
 
+    async def reset_vector_index(self, collection_name: str, 
+                                    index_type: str = PgVectorIndexTypeEnums.HNSW.value) -> bool:
+        
+        index_name = self.default_index_name(collection_name)
+        async with self.db_client() as session:
+            async with session.begin():
+                drop_index_sql = sql_text(f'DROP INDEX IF EXISTS {index_name}')
+                await session.execute(drop_index_sql)
+                await session.commit()
+        return await self.create_vector_index(collection_name=collection_name, index_type=index_type)
 
-               
+
+
