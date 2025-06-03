@@ -7,29 +7,25 @@ import logging
 
 
 class QdrantDBProvider(VectorDBInterface):
-    def __init__(self, db_path: str, distance_method: str):
-        """
-        Initialize the QdrantDBProvider.
-
-        Args:
-            db_path (str): The path to the Qdrant database.
-            distance_method (str): The distance method to use (e.g., "cosine", "dot").
-        """
+    def __init__(self, db_client: str, default_vector_size: int = 786,
+                                    distance_method: str = None, index_threshold: int=100):
+    
         self.client = None
-        self.db_path = db_path
+        self.db_client = db_client
         self.distance_method = None
+        self.default_vector_size = default_vector_size
 
         if distance_method == DistanceMethodEnums.COSINE.value:
             self.distance_method = models.Distance.COSINE
         elif distance_method == DistanceMethodEnums.DOT.value:
             self.distance_method = models.Distance.DOT
 
-        self.logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger('uvicorn')
 
     async def connect(self) -> None:
         """Connect to the Qdrant database."""
-        self.client = QdrantClient(path=self.db_path)
-        self.logger.info(f"Connected to Qdrant database at {self.db_path}")
+        self.client = QdrantClient(path=self.db_client)
+        self.logger.info(f"Connected to Qdrant database at {self.db_client}")
         
     async def disconnect(self) -> None:
         """Disconnect from the Qdrant database."""
@@ -78,7 +74,6 @@ class QdrantDBProvider(VectorDBInterface):
             bool: True if the collection was deleted successfully, False otherwise.
         """
         if await self.is_collection_existed(collection_name=collection_name):
-            self.logger.info(f"Deleting collection: {collection_name}")
             result = self.client.delete_collection(collection_name=collection_name)
             self.logger.info(f"Deleted collection: {collection_name}")
             return True
@@ -101,6 +96,8 @@ class QdrantDBProvider(VectorDBInterface):
             await self.delete_collection(collection_name=collection_name)
         
         if not await self.is_collection_existed(collection_name=collection_name):
+            self.logger.info(f"Creating new Qdrant collection: {collection_name}")
+
             self.client.create_collection(
                 collection_name=collection_name,
                 vectors_config=models.VectorParams(
@@ -108,10 +105,8 @@ class QdrantDBProvider(VectorDBInterface):
                     distance=self.distance_method
                 )
             )
-            self.logger.info(f"Created collection: {collection_name}")
             return True
         
-        self.logger.warning(f"Collection {collection_name} already exists.")
         return False
     
     async def insert_one(self, collection_name: str, text: str, vector: list,
