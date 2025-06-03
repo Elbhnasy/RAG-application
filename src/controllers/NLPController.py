@@ -15,47 +15,42 @@ class NLPController(BaseController):
         self.embedding_client = embedding_client
         self.template_parser = template_parser
 
-    def create_collection_name(self, project_id: str) -> str:
-        """Create a collection name for the project."""
-        return f"collection_{project_id}"
+    def create_collection_name(self, project_id: str):
+        return f"collection_{self.vectordb_client.default_vector_size}_{project_id}".strip()
     
-    def reset_vector_db_collection(self, project: Project) -> bool:
+    async def reset_vector_db_collection(self, project: Project) -> bool:
         """Reset the vector db collection for the project."""
         collection_name = self.create_collection_name(project_id=project.project_id)
-        return self.vectordb_client.delete_collection(collection_name=collection_name)
+        return await self.vectordb_client.delete_collection(collection_name=collection_name)
     
-    def get_vector_db_collection_info(self, project: Project) -> dict:
+    async def get_vector_db_collection_info(self, project: Project) -> dict:
         """Get the vector db collection info for the project."""
         collection_name = self.create_collection_name(project_id=project.project_id)
-        collection_info = self.vectordb_client.get_collection_info(collection_name=collection_name)
+        collection_info = await self.vectordb_client.get_collection_info(collection_name=collection_name)
         return json.loads(
-            json.dumps(
-                collection_info, 
-                default=lambda o: o.__dict__ if hasattr(o, '__dict__') else str(o)
-            )
+            json.dumps(collection_info, default=lambda o: o.__dict__ )
         )
-     
     
-    def index_into_vector_db(self, project: Project, chunks: List[DataChunk],
-                           chunks_ids: List[int], do_reset: bool = False) -> bool:
+    
+    async def index_into_vector_db(self, project: Project, chunks: List[DataChunk],
+                            chunks_ids: List[int], do_reset: bool = False) -> bool:
         """Index the chunks into the vector db."""
         try:
             collection_name = self.create_collection_name(project_id=project.project_id)
 
             texts = [chunk.chunk_text for chunk in chunks]
             metadata = [chunk.chunk_metadata for chunk in chunks]
-            vectors = [
-                self.embedding_client.embed_text(text=text, document_type=DocumentTypeEnum.DOCUMENT.value)
-                for text in texts
-            ]
+            vectors = self.embedding_client.embed_text(text=texts, 
+                                                    document_type=DocumentTypeEnum.DOCUMENT.value)
 
-            self.vectordb_client.create_collection(
+
+            await self.vectordb_client.create_collection(
                 collection_name=collection_name,
                 embedding_size=self.embedding_client.embedding_size,
                 do_reset=do_reset
             )
 
-            self.vectordb_client.insert_many(
+            await self.vectordb_client.insert_many(
                 collection_name=collection_name,
                 texts=texts,
                 vectors=vectors,
@@ -67,22 +62,29 @@ class NLPController(BaseController):
             logger.error(f"Failed to index chunks into vector DB: {e}")
             return False
     
-    def search_vector_db_collection(self, project: Project, text: str, limit: int = 10) -> Optional[List]:
+    async def search_vector_db_collection(self, project: Project, text: str, limit: int = 10) -> Optional[List]:
         """Search the vector db collection for the project."""
         try:
+            query_vector = None
             collection_name = self.create_collection_name(project_id=project.project_id)
             
-            vector = self.embedding_client.embed_text(
+            vectors = self.embedding_client.embed_text(
                 text=text,
                 document_type=DocumentTypeEnum.QUERY.value
             )
 
-            if not vector:
-                return None
+            if not vectors or len(vectors) == 0:
+                return False
             
-            results = self.vectordb_client.search_by_vector(
+            if isinstance(vectors, list) and len(vectors) > 0:
+                query_vector = vectors[0]
+            
+            if not query_vector:
+                return False
+            
+            results = await self.vectordb_client.search_by_vector(
                 collection_name=collection_name,
-                vector=vector,
+                vector=query_vector,
                 limit=limit
             )
             return results if results else None
@@ -90,44 +92,51 @@ class NLPController(BaseController):
             logger.error(f"Failed to search vector DB: {e}")
             return None
         
-    def answer_rag_question(self, project: Project, query: str, limit: int = 10) -> Tuple[Optional[str], Optional[str], Optional[List]]:
-        """Answer a question using the RAG model."""
-        try:
-            retrieved_documents = self.search_vector_db_collection(
-                project=project,
-                text=query,
-                limit=limit
-            )
+    
+        
+    async def answer_rag_question(self, project: Project, query: str, limit: int = 10):
+        
+        answer, full_prompt, chat_history = None, None, None
 
-            if not retrieved_documents:
-                return None, None, None
-            
-            system_prompts = self.template_parser.get("rag", "system_prompt")
-            
-            documents_prompt = "\n".join([
-                self.template_parser.get("rag", "document_prompt", {
+        # step1: retrieve related documents
+        retrieved_documents = await self.search_vector_db_collection(
+            project=project,
+            text=query,
+            limit=limit,
+        )
+
+        if not retrieved_documents or len(retrieved_documents) == 0:
+            return answer, full_prompt, chat_history
+        
+        # step2: Construct LLM prompt
+        system_prompt = self.template_parser.get("rag", "system_prompt")
+
+        documents_prompts = "\n".join([
+            self.template_parser.get("rag", "document_prompt", {
                     "doc_num": idx + 1,
                     "chunk_text": self.generation_client.process_text(doc.text),
-                })
-                for idx, doc in enumerate(retrieved_documents)
-            ])
+            })
+            for idx, doc in enumerate(retrieved_documents)
+        ])
 
-            footer_prompt = self.template_parser.get("rag", "footer_prompt", {"query": query})
+        footer_prompt = self.template_parser.get("rag", "footer_prompt", {
+            "query": query
+        })
 
-            chat_history = [
-                self.generation_client.construct_prompt(
-                    prompt=system_prompts,
-                    role=self.generation_client.enums.SYSTEM.value,
-                )
-            ]
-
-            full_prompt = "\n\n".join([documents_prompt, footer_prompt])
-
-            answer = self.generation_client.generate_text(
-                prompt=full_prompt,
-                chat_history=chat_history
+        # step3: Construct Generation Client Prompts
+        chat_history = [
+            self.generation_client.construct_prompt(
+                prompt=system_prompt,
+                role=self.generation_client.enums.SYSTEM.value,
             )
-            return answer, full_prompt, chat_history
-        except Exception as e:
-            logger.error(f"Failed to answer RAG question: {e}")
-            return None, None, None
+        ]
+
+        full_prompt = "\n\n".join([ documents_prompts,  footer_prompt])
+
+        # step4: Retrieve the Answer
+        answer = self.generation_client.generate_text(
+            prompt=full_prompt,
+            chat_history=chat_history
+        )
+
+        return answer, full_prompt, chat_history
