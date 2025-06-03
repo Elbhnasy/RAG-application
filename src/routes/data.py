@@ -7,6 +7,7 @@ from models.enums.AssetTypeEnum import AssetTypeEnum
 from models.db_schemes import DataChunk, Asset
 from models import ResponseSignal
 from .schemes.data import ProcessRequest
+from controllers import NLPController
 import aiofiles
 import os
 import logging
@@ -93,6 +94,13 @@ async def process_endpoint(request : Request,project_id : int , process_request 
     project = await project_model.get_project_or_create_one(
         project_id=project_id
     )
+
+    nlp_controller = NLPController(
+        vectordb_client=request.app.vectordb_client,
+        generation_client=request.app.generation_client,
+        embedding_client=request.app.embedding_client,
+        template_parser=request.app.template_parser,
+    )
     
     asset_model = await AssetModel.create_instance(
         db_client= request.app.db_client
@@ -143,10 +151,15 @@ async def process_endpoint(request : Request,project_id : int , process_request 
     )
 
     if do_reset ==1:
+        # delete associated vectors collection
+        collection_name = nlp_controller.create_collection_name(project_id=project.project_id)
+        _ = await request.app.vectordb_client.delete_collection(collection_name=collection_name)
+
+        # delete associated chunks
         _ = await chunk_model.delete_chunks_by_project_id(
             project_id=project.project_id
         )
-    
+        
     for asset_id, file_id in project_files_ids.items():
 
         file_content = process_controller.get_file_content(file_id=file_id)
