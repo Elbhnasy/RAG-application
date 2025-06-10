@@ -20,3 +20,11 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
         REQUEST_COUNT.labels(method=request.method, endpoint=endpoint, status=response.status_code).inc()
 
         return response
+    
+def setup_metrics(app: FastAPI):
+
+    app.add_middleware(PrometheusMiddleware)
+
+    @app.get("/TrhBVe_m5gg2002_E5VVqS", include_in_schema=False)
+    def metrics():
+        return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
