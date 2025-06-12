@@ -8,6 +8,7 @@ from stores.vectordb.VectorDBProviderFactory import VectorDBProviderFactory
 from stores.llm.templates.template_parser import TemplateParser
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
+from utils.metrics import setup_metrics
 
 
 logging.basicConfig(level=logging.INFO)
@@ -58,6 +59,9 @@ async def lifespan(app: FastAPI):
     logger.info("Vector DB connection closed")
         
 app = FastAPI(lifespan=lifespan)
+
+# Setup Prometheus metrics
+setup_metrics(app)
 
 
 app.include_router(base.base_router)

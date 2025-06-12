@@ -11,6 +11,7 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request:Request, call_next):
         
         start_time = time.time()
+        
         response = await call_next(request)
 
         duration = time.time() - start_time
