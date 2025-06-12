@@ -18,3 +18,42 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+
+  # Qdrant vector search service
+  qdrant:
+    image: qdrant/qdrant:dev
+    container_name: qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - backend
+    restart: always
+
+  # PosgreSql Exporter service for monitoring
+  postgres_exporter:
+    image: prometheuscommunity/postgres-exporter:master
+    container_name: postgres_exporter
+    ports:
+      - "9187:9187"
+    env_file:
+      - ./env/.env.postgres-exporter
+    depends_on:
+      - pgvector
+    networks:
+      - backend
+    restart: always
+
+networks:
+  backend:
+    driver: bridge
+
+volumes:
+  fastapi_data:
+  pgvector:
+  qdrant_data:
+  prometheus_data:
+  grafana_data:
+
