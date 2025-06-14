@@ -1,26 +1,4 @@
 services:
-  # Ollama service for LLMs
-  Ollama:
-    image: ollama/ollama:0.9.1-rc1-rocm
-    container_name: ollama
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-    networks:
-      - backend
-    restart: always
-    command: >
-      sh -c "ollama serve &
-      sleep 10 &&
-      ollama pull llama3.2:latest &&
-      wait"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
   # FastAPI application service
   fastapi:
     build:
@@ -41,6 +19,26 @@ services:
         condition: service_healthy
     env_file:
       - ./env/.env.fastapi
+
+  # Ollama service for LLMs
+  ollama:
+    build:
+      context: .
+      dockerfile: ollama/Dockerfile
+    container_name: ollama
+    ports:
+      - "11435:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - backend
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   # Nginx reverse proxy service
   nginx:
